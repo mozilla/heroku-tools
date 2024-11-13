@@ -40,6 +40,17 @@ uv run https://github.com/path/to/acnt-mgmt.py _action_ _arg_
 Simply clone the repository to your local disk, `cd` into it, and use `uv run
 acnt-mgmt.py` for all other actions.
 
+Or, for full `uv` magic, skip the clone:
+```bash
+uv run https://raw.githubusercontent.com/mozilla/heroku-tools/refs/heads/main/accounts/acnt-mgmt.py --help
+```
+
+## Development
+
+For development, you do need to clone. You can continue to use [`uv`][uv] for
+development, or create a traditional venv using python. The `pyproject.toml`
+file has all the requirements in it.
+
 ## Optional Configuration
 
 While you can pass the arguments on the command line, you can supply some as
