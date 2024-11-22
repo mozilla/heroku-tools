@@ -6,8 +6,7 @@ Actually, the ancient bash scripts have been retired, and all functionality is
 in a single Python script. That package is [`uv`][uv] friendly, so to see the
 current features, just
 ```bash
-❯ uv run acnt-mgmt.py --help
-Reading inline script metadata from `acnt-mgmt.py`
+❯ ./acnt-mgmt.py --help
 usage: acnt-mgmt.py [-h] [--token TOKEN] [--team TEAM] [--clip] [--no-clip] {list,emails,verify,revoke} ...
 
 options:
@@ -32,24 +31,27 @@ more information.
 ## Installation
 
 The script `acnt-mgmt.py` is a single file with inline script metadata. Which
-means you can invoke it from [`uv`][uv] as:
+means you can invoke it remotely from [`uv`][uv] as:
 ```bash
 uv run https://github.com/path/to/acnt-mgmt.py _action_ _arg_
 ```
 
-Simply clone the repository to your local disk, `cd` into it, and use `uv run
-acnt-mgmt.py` for all other actions.
-
-Or, for full `uv` magic, skip the clone:
+To install locally, simply copy that one file to your system (after installing
+[`uv`][uv]), and make it executable:
 ```bash
-uv run https://raw.githubusercontent.com/mozilla/heroku-tools/refs/heads/main/accounts/acnt-mgmt.py --help
+cd directory/for/local/scripts/already/on/PATH
+curl -O https://raw.githubusercontent.com/mozilla/heroku-tools/refs/heads/main/accounts/acnt-mgmt.py
+chmod +x acnt-mgmt.py
+./acnt-mgmt.py --help
 ```
 
-## Development
+### Development
 
-For development, you do need to clone. You can continue to use [`uv`][uv] for
+
+For development, you do need to clone. Please continue to use [`uv`][uv] for
 development, or create a traditional venv using python. The `pyproject.toml`
-file has all the requirements in it.
+file has all the requirements in it. (If you add requirements, please do also
+update the inline metadata in the script as well.)
 
 ## Optional Configuration
 
@@ -63,6 +65,9 @@ export HEROKU_TOKEN=$(op read "$OP_REFERENCE")
 export HEROKU_TEAM=my_favorite_team
 export HEROKU_USE_CLIPBOARD=True  # N.B. must be the exact string "True" to be true.
 ```
+
+**Note:** if you do use `direnv`, remember that you must be in that directory
+when you launch `acnt_mgmt.py`, even if you have the script installed globally.
 
 # Actions
 
