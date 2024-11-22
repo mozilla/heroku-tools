@@ -1,4 +1,4 @@
-#! /usr/bin/env -S uv run
+#! /usr/bin/env -S uv run --quiet
 # PYTHON_ARGCOMPLETE_OK
 # /// script
 # name = "Heroku-Account-Management"
