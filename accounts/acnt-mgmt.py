@@ -15,6 +15,7 @@ import enum
 import functools
 import json
 import os
+from pprint import pformat
 
 # Functions to interact with Heroku API
 import subprocess
@@ -430,7 +431,8 @@ def main() -> None:
     if isinstance(result[0], Account):
         output = "\n".join(r.as_text() for r in result)
     else:
-        output = "\n".join(result)
+        # we get back a dict when a member was revoked
+        output = "\n".join(r if isinstance(r, str) else pformat(r) for r in result)
     if context.clip:
         pyperclip.copy(output)
         print("(also copied to clipboard)")
