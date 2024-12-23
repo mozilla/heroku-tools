@@ -103,7 +103,7 @@ def _get_headers() -> dict[str:str]:
     return headers
 
 
-def do_revoke(addr: str, ctx: Context) -> str:
+def do_revoke(addr: str, ctx: Context) -> str | tuple[str]:
     """
     revoke Revoke the supplied email and return  status
 
@@ -125,7 +125,8 @@ def do_revoke(addr: str, ctx: Context) -> str:
     try:
         with request.urlopen(req) as f:
             data = f.read().decode("utf-8")
-            result = json.loads(data)
+            # Success! Result is a JSON dict with prior access
+            result = ( f"{addr} was revoked from membership in {ctx.team}", pformat(request.json()))
     except OSError as e:
         if e.code == 404:
             result = f"{addr} is not a member of {ctx.team} ({e.code})"
