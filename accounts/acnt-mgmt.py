@@ -126,10 +126,10 @@ def do_revoke(addr: str, ctx: Context) -> str | tuple[str]:
         with request.urlopen(req) as f:
             data = f.read().decode("utf-8")
             # Success! Result is a JSON dict with prior access
-            result = ( f"{addr} was revoked from membership in {ctx.team}", pformat(request.json()))
+            result = ( f"{addr} was revoked from membership in Heroku team {ctx.team}", pformat(request.json()))
     except OSError as e:
         if e.code == 404:
-            result = f"{addr} is not a member of {ctx.team} ({e.code})"
+            result = f"{addr} is not a member of Heroku team {ctx.team} ({e.code})"
         else:
             raise
 
@@ -294,7 +294,7 @@ def is_member(email: str, ctx: Context) -> bool:
 
 def revoke(email: str, ctx: Context) -> list[str]:
     if not is_member(email, ctx):
-        result = f"FAIL: {email} is not a member of {ctx.team}"
+        result = f"FAIL: {email} is not a member of Heroku team {ctx.team}"
     else:
         result = do_revoke(email, ctx)
     return result
@@ -334,9 +334,9 @@ def membership_verify(ctx: Context) -> list[str]:
     status = []
     for addr in ctx.emails:
         if is_member(addr, ctx):
-            status.append(f"{addr} is a member of {ctx.team}")
+            status.append(f"{addr} is a member of Heroku team {ctx.team}")
         else:
-            status.append(f"{addr} is NOT a member of {ctx.team}")
+            status.append(f"{addr} is NOT a member of Heroku team {ctx.team}")
 
     return status
 
@@ -349,9 +349,9 @@ def membership_revoke(ctx: Context) -> list[str]:
                 status.append(revoke(addr, ctx))
             except Exception as e:
                 print(repr(e))
-                status.append(f"{addr} failed membership revocation from {ctx.team}")
+                status.append(f"{addr} failed membership revocation from Heroku team {ctx.team}")
         else:
-            status.append(f"{addr} was NOT a member of {ctx.team}")
+            status.append(f"{addr} was NOT a member of Heroku team {ctx.team}")
 
     return status
 
