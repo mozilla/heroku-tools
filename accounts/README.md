@@ -7,14 +7,15 @@ in a single Python script. That package is [`uv`][uv] friendly, so to see the
 current features, just
 ```bash
 ❯ ./acnt-mgmt.py --help
-usage: acnt-mgmt.py [-h] [--token TOKEN] [--team TEAM] [--clip] [--no-clip] {list,emails,verify,revoke} ...
+usage: acnt-mgmt.py [-h] [--token TOKEN] [--team TEAM] [--enterprise] [--clip] [--no-clip] {list,emails,verify,revoke} ...
 
 options:
   -h, --help            show this help message and exit
   --token TOKEN         Heroku Auth Token or op url [env: HEROKU_TOKEN=]
   --team TEAM           Heroku team to query (default mozillacorporation) [env: HEROKU_TEAM=]
-  --clip                Place output on clipboard (default False) [env: HEROKU_USE_CLIPBOARD=]
-  --no-clip             Place output on clipboard (default False) [env: HEROKU_USE_CLIPBOARD=]
+  --enterprise          Team value is actually an enterprise
+  --clip                Place output on clipboard (default True) [env: HEROKU_USE_CLIPBOARD=]
+  --no-clip             Place output on clipboard (default True) [env: HEROKU_USE_CLIPBOARD=]
 
 Supported Actions:
   various commands that can be performed (some may have options, check their --help)
@@ -23,8 +24,7 @@ Supported Actions:
     list                list all problem members
     emails              list all emails
     verify              verify membership of supplied emails
-    revoke              revoke membership of supplied emails
-```
+    revoke              revoke membership of supplied emails```
 Some of the actions have options, using `--help` at that level will provide
 more information.
 

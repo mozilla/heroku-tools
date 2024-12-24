@@ -21,6 +21,7 @@ from pprint import pformat
 import subprocess
 from argparse import Namespace as Context
 from urllib import request
+import urllib
 
 import argcomplete
 import pyperclip
@@ -61,7 +62,7 @@ def login(token: str, team: str) -> None:
 
 
 @functools.lru_cache
-def members(team: str) -> dict:
+def members(team: str, scope:str = "teams", is_enterprise: bool=False) -> dict:
     """
     members return all members for this team
 
@@ -77,12 +78,22 @@ def members(team: str) -> dict:
         dict: JSON response converted to Python dict. See XXX for details
     TODO: get URL reference for API call results
     """
-    url = f"https://api.heroku.com/teams/{team}/members"
+    url = f"https://api.heroku.com/{scope}/{team}/members"
     headers = _get_headers()
     req = request.Request(url, headers=headers, method="GET")
-    with request.urlopen(req) as f:
-        data = f.read().decode("utf-8")
-    result = json.loads(data)
+    try:
+        with request.urlopen(req) as f:
+            data = f.read().decode("utf-8")
+        result = json.loads(data)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            # no such team
+            raise ValueError(f"No such {scope[:-1]} {team}")
+        elif e.code == 403:
+            # may be enterprise account, not enterprise team
+            raise ValueError(f"No such {scope[:-1]} {team}, did you forget the --enterprise option?")
+        else:
+            raise
     return result
 
 
@@ -118,7 +129,7 @@ def do_revoke(addr: str, ctx: Context) -> str | tuple[str]:
 
     TODO: verify that custom access details are returned (as it was with bash scripts)
     """
-    url = f"https://api.heroku.com/teams/{ctx.team}/members/{addr}"
+    url = f"https://api.heroku.com/{ctx.scope}/{ctx.team}/members/{addr}"
     headers = _get_headers()
     req = request.Request(url, headers=headers, method="DELETE")
     result = ""
@@ -126,10 +137,13 @@ def do_revoke(addr: str, ctx: Context) -> str | tuple[str]:
         with request.urlopen(req) as f:
             data = f.read().decode("utf-8")
             # Success! Result is a JSON dict with prior access
-            result = ( f"{addr} was revoked from membership in Heroku team {ctx.team}", pformat(request.json()))
+            result = ( f"{addr} was revoked from membership in Heroku {ctx.scope[:-1]} {ctx.team}", pformat(request.json()))
     except OSError as e:
         if e.code == 404:
-            result = f"{addr} is not a member of Heroku team {ctx.team} ({e.code})"
+            result = f"{addr} is not a member of Heroku {ctx.scope[:-1]} {ctx.team} ({e.code})"
+        elif e.code == 403:
+            # may be enterprise account, not enterprise team
+            raise ValueError(f"No such {ctx.scope[:-1]} {ctx.team}, did you forget the --enterprise option?")
         else:
             raise
 
@@ -302,7 +316,7 @@ def revoke(email: str, ctx: Context) -> list[str]:
 
 # Routines to report on members
 def member_list(ctx: Context) -> list[Account]:
-    everyone = all_members(ctx.team)
+    everyone = all_members(ctx.team, ctx.scope, ctx.enterprise)
     result = []
     for acnt in everyone:
         if acnt.needs_action or ctx.all:
@@ -311,21 +325,29 @@ def member_list(ctx: Context) -> list[Account]:
 
 
 @functools.lru_cache
-def all_members(team: str) -> list[Account]:
-    data = members(team)
+def all_members(team: str, scope: str, is_enterprise: bool=False) -> list[Account]:
+    data = members(team, scope, is_enterprise)
     result = []
     for d in data:
         acnt = Account()
-        for k in (f.name for f in dataclasses.fields(Account)):
-            if k in d:
-                acnt.set_value(k, d[k])
+        if not is_enterprise:
+            for k in (f.name for f in dataclasses.fields(Account)):
+                if k in d:
+                    acnt.set_value(k, d[k])
+        else:
+            # enterprise has more complex structure
+            acnt.email = d['user']['email']
+            acnt.federated = True if d['identity_provider'] else False
+            acnt.role = d['permissions'][0]['name']
+            acnt.two_factor_authentication = d['two_factor_authentication']
+
         acnt.classify()
         result.append(acnt)
     return result
 
 
 def member_emails(ctx: Context) -> list[str]:
-    full_info = all_members(ctx.team)
+    full_info = all_members(ctx.team, ctx.scope, ctx.enterprise)
     emails = [a.email for a in full_info]
     return emails
 
@@ -347,9 +369,10 @@ def membership_revoke(ctx: Context) -> list[str]:
         if is_member(addr, ctx):
             try:
                 status.append(revoke(addr, ctx))
+            except ValueError as e:
+                raise SystemExit(e)
             except Exception as e:
-                print(repr(e))
-                status.append(f"{addr} failed membership revocation from Heroku team {ctx.team}")
+                status.append(f"{addr} failed membership revocation from Heroku {ctx.scope[:-1]} {ctx.team}")
         else:
             status.append(f"{addr} was NOT a member of Heroku team {ctx.team}")
 
@@ -380,6 +403,11 @@ def _parse_args() -> argparse.Namespace:
         default=os.getenv("HEROKU_TEAM", "mozillacorporation"),
         help="Heroku team to query (default mozillacorporation) [env: HEROKU_TEAM=]",
     )
+    parser.add_argument(
+        "--enterprise",
+        action="store_true",
+        help="Team value is actually an enterprise",
+    )
     use_clipboard = bool(os.getenv("HEROKU_USE_CLIPBOARD", "False") == "True")
     parser.add_argument(
         "--clip",
@@ -401,16 +429,22 @@ def _parse_args() -> argparse.Namespace:
         description="various commands that can be performed (some may have options, check their --help)",
         required=True,
     )
+
+    # list subcommand
     parser_list = subcommands.add_parser("list", help="list all problem members")
     parser_list.add_argument("--all", action="store_true", help="Show all members")
     parser_list.set_defaults(func=member_list)
     _ = subcommands.add_parser("emails", help="list all emails")
     _.set_defaults(func=member_emails)
+
+    # verify subcommand
     parser_verify = subcommands.add_parser(
         "verify", help="verify membership of supplied emails"
     )
     parser_verify.add_argument("emails", nargs="+")
     parser_verify.set_defaults(func=membership_verify)
+
+    # revoke subcommand
     parser_revoke = subcommands.add_parser(
         "revoke", help="revoke membership of supplied emails"
     )
@@ -419,6 +453,10 @@ def _parse_args() -> argparse.Namespace:
 
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
+
+    # set "scope" to use in URL
+    args.scope = "enterprise-accounts" if args.enterprise else "teams"
+
     return args
 
 
@@ -428,7 +466,6 @@ def main() -> None:
     login(context.token, context.team)
     result = context.func(context)
     fname = context.func.__name__.split("_")[1]
-    print(f"result of running {fname}")
     if isinstance(result[0], Account):
         output = "\n".join(r.as_text() for r in result)
     else:
