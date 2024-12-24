@@ -14,8 +14,8 @@ options:
   --token TOKEN         Heroku Auth Token or op url [env: HEROKU_TOKEN=]
   --team TEAM           Heroku team to query (default mozillacorporation) [env: HEROKU_TEAM=]
   --enterprise          Team value is actually an enterprise
-  --clip                Place output on clipboard (default True) [env: HEROKU_USE_CLIPBOARD=]
-  --no-clip             Place output on clipboard (default True) [env: HEROKU_USE_CLIPBOARD=]
+  --clip                Place output on clipboard (default False) [env: HEROKU_USE_CLIPBOARD=]
+  --no-clip             Place output on clipboard (default False) [env: HEROKU_USE_CLIPBOARD=]
 
 Supported Actions:
   various commands that can be performed (some may have options, check their --help)
